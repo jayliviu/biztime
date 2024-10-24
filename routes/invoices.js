@@ -70,13 +70,18 @@ router.put('/:id', async (req, res, next) => {
 	try {
 
 		const { id } = req.params
-		const { amt } = req.body
+		const { amt, paid } = req.body
 		const result = await db.query(`
 			UPDATE invoices
-			SET amt = $1
-			WHERE id = $2
+			SET amt = $1, paid = $2,
+    	paid_date = CASE
+      WHEN $2 = true AND paid = false THEN CURRENT_DATE
+      WHEN $2 = false AND paid = true THEN NULL
+      ELSE paid_date
+    	END
+			WHERE id = $3
 			RETURNING *
-		`, [amt, id])
+		`, [amt, paid, id])
 
 		if(result.rows.length === 0) {
 			return next(new expressError(`Couldn't update invoice based on data you gave us`, 404))
@@ -93,7 +98,7 @@ router.put('/:id', async (req, res, next) => {
 router.delete('/:id', async (req, res, next) => {
 	try {
 
-		const { id } = req.params
+		const { id } = req.params	
 
 		const result = await db.query(`
 			DELETE FROM invoices

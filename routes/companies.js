@@ -1,6 +1,7 @@
 const db = require("../db");
 const express = require("express");
 const ExpressError = require("../expressError");
+const slugify = require('slugify')
 const router = express.Router();
 
 
@@ -46,11 +47,18 @@ router.post('/', async (req, res, next) => {
 	try {
 		const { code, name, description } = req.body
 
+		const slug = slugify(code, {
+			lower: true,
+			strict: true,
+			remove: /[~'!@#*]/g,
+			trim: true
+		});
+
 		const result = await db.query(`
 			INSERT INTO companies (code, name, description)
 			VALUES ($1, $2, $3)
 			RETURNING *
-		`, [code, name, description]);
+		`, [slug, name, description]);
 
 		if(result.rows.length === 0) {
 			return next(new ExpressError('Check the data you tried inserting, something went wrong', 400))
